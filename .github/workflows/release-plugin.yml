@@ -1,0 +1,121 @@
+name: Release Jellyfin VR Plugin
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag, e.g. v1.0.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  PROJECT_PATH: Jellyfin.Plugin.VR/Jellyfin.Plugin.VR.csproj
+  PLUGIN_DLL: Jellyfin.Plugin.VR.dll
+  TARGET_ABI: 10.8.3.0
+  PLUGIN_GUID: a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d
+  PLUGIN_NAME: Jellyfin VR
+  PLUGIN_OWNER: reginaldlu
+  PLUGIN_CATEGORY: General
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 6
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+
+      - name: Restore
+        run: dotnet restore "${{ env.PROJECT_PATH }}"
+
+      - name: Build Release
+        run: dotnet build "${{ env.PROJECT_PATH }}" -c Release --no-restore
+
+      - name: Prepare package files
+        id: prep
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG_NAME="${{ github.event.inputs.release_tag || github.ref_name }}"
+          VERSION="${TAG_NAME#v}"
+
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            VERSION="${VERSION}.0"
+          fi
+
+          DLL_PATH="Jellyfin.Plugin.VR/bin/Release/net6.0/${PLUGIN_DLL}"
+          if [[ ! -f "$DLL_PATH" ]]; then
+            echo "DLL not found: $DLL_PATH"
+            exit 1
+          fi
+
+          mkdir -p dist/package/Jellyfin.Plugin.VR
+          cp "$DLL_PATH" dist/package/Jellyfin.Plugin.VR/
+
+          ZIP_NAME="Jellyfin.Plugin.VR_${VERSION}.zip"
+          (cd dist/package && zip -r "../${ZIP_NAME}" "Jellyfin.Plugin.VR" >/dev/null)
+
+          MD5=$(md5sum "dist/${ZIP_NAME}" | awk '{print $1}')
+          echo "$MD5  ${ZIP_NAME}" > "dist/${ZIP_NAME}.md5"
+
+          SOURCE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG_NAME}/${ZIP_NAME}"
+          TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          cat > dist/manifest.json <<EOF
+          [
+            {
+              "guid": "${PLUGIN_GUID}",
+              "name": "${PLUGIN_NAME}",
+              "description": "Detect and play VR videos in Jellyfin.",
+              "overview": "VR detection and standalone VR playback page",
+              "owner": "${PLUGIN_OWNER}",
+              "category": "${PLUGIN_CATEGORY}",
+              "versions": [
+                {
+                  "version": "${VERSION}",
+                  "changelog": "Release ${TAG_NAME}",
+                  "targetAbi": "${TARGET_ABI}",
+                  "sourceUrl": "${SOURCE_URL}",
+                  "checksum": "${MD5}",
+                  "timestamp": "${TIMESTAMP}"
+                }
+              ]
+            }
+          ]
+          EOF
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "zip_name=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
+          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.prep.outputs.tag_name }}
+          name: Jellyfin VR ${{ steps.prep.outputs.tag_name }}
+          body: |
+            Jellyfin VR plugin release.
+
+            - targetAbi: `${{ env.TARGET_ABI }}`
+            - version: `${{ steps.prep.outputs.version }}`
+
+            Files:
+            - `${{ steps.prep.outputs.zip_name }}`
+            - `${{ steps.prep.outputs.zip_name }}.md5`
+            - `manifest.json`
+          files: |
+            dist/${{ steps.prep.outputs.zip_name }}
+            dist/${{ steps.prep.outputs.zip_name }}.md5
+            dist/manifest.json

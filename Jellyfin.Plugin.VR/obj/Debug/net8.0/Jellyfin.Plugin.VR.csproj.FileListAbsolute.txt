@@ -1,0 +1,14 @@
+D:\jellyfin-vr-plugin\Jellyfin.Plugin.VR\bin\Debug\net8.0\Jellyfin.Plugin.VR.deps.json
+D:\jellyfin-vr-plugin\Jellyfin.Plugin.VR\bin\Debug\net8.0\Jellyfin.Plugin.VR.dll
+D:\jellyfin-vr-plugin\Jellyfin.Plugin.VR\bin\Debug\net8.0\Jellyfin.Plugin.VR.pdb
+D:\jellyfin-vr-plugin\Jellyfin.Plugin.VR\bin\Debug\net8.0\Jellyfin.Plugin.VR.xml
+D:\jellyfin-vr-plugin\Jellyfin.Plugin.VR\obj\Debug\net8.0\Jellyfin.Plugin.VR.csproj.AssemblyReference.cache
+D:\jellyfin-vr-plugin\Jellyfin.Plugin.VR\obj\Debug\net8.0\Jellyfin.Plugin.VR.GeneratedMSBuildEditorConfig.editorconfig
+D:\jellyfin-vr-plugin\Jellyfin.Plugin.VR\obj\Debug\net8.0\Jellyfin.Plugin.VR.AssemblyInfoInputs.cache
+D:\jellyfin-vr-plugin\Jellyfin.Plugin.VR\obj\Debug\net8.0\Jellyfin.Plugin.VR.AssemblyInfo.cs
+D:\jellyfin-vr-plugin\Jellyfin.Plugin.VR\obj\Debug\net8.0\Jellyfin.Plugin.VR.csproj.CoreCompileInputs.cache
+D:\jellyfin-vr-plugin\Jellyfin.Plugin.VR\obj\Debug\net8.0\Jellyfin.Plugin.VR.dll
+D:\jellyfin-vr-plugin\Jellyfin.Plugin.VR\obj\Debug\net8.0\refint\Jellyfin.Plugin.VR.dll
+D:\jellyfin-vr-plugin\Jellyfin.Plugin.VR\obj\Debug\net8.0\Jellyfin.Plugin.VR.xml
+D:\jellyfin-vr-plugin\Jellyfin.Plugin.VR\obj\Debug\net8.0\Jellyfin.Plugin.VR.pdb
+D:\jellyfin-vr-plugin\Jellyfin.Plugin.VR\obj\Debug\net8.0\ref\Jellyfin.Plugin.VR.dll

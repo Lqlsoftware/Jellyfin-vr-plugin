@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VR Player - {{TITLE}}</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #000; font-family: sans-serif; }
+        #vr-scene { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+        #controls {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); padding: 12px 20px; border-radius: 8px;
+            display: flex; align-items: center; gap: 16px; z-index: 1000;
+        }
+        #controls button {
+            background: #00a4dc; color: white; border: none; padding: 8px 16px;
+            border-radius: 4px; cursor: pointer; font-size: 14px;
+        }
+        #controls button:hover { background: #0088b8; }
+        #progress { flex: 1; min-width: 120px; height: 6px; cursor: pointer; }
+        #time { color: #fff; font-size: 12px; min-width: 100px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="vr-scene">
+        <a-scene embedded vr-mode-ui="enabled: false" loading-screen="enabled: false">
+            <a-assets>
+                <video id="video-element" crossorigin="anonymous" preload="auto" playsinline
+                    src="{{STREAM_URL}}"></video>
+            </a-assets>
+            <a-videosphere id="videosphere" src="#video-element"
+                geometry="radius: 500; phiLength: {{PHI_LENGTH}}; phiStart: {{PHI_START}}; thetaLength: 180; thetaStart: 0"
+                material="shader: flat"></a-videosphere>
+            <a-camera id="camera" position="0 1.6 0" rotation="0 -90 0" look-controls="pointerLockEnabled: true; mouseSensitivity: 0.5"></a-camera>
+            <a-light type="ambient" color="#ffffff" intensity="0.5"></a-light>
+        </a-scene>
+    </div>
+    <div id="controls">
+        <button id="play-btn">▶</button>
+        <input type="range" id="progress" min="0" max="100" value="0">
+        <span id="time">00:00 / 00:00</span>
+        <button id="fullscreen-btn">⛶</button>
+    </div>
+    <script>
+        (function() {
+            const FOV = '{{FOV}}';
+            const FORMAT = '{{FORMAT}}';
+            const phiStart = FOV === '180' ? -90 : 0;
+            const phiLength = FOV === '180' ? 180 : 360;
+
+            const video = document.getElementById('video-element');
+            const videosphere = document.getElementById('videosphere');
+            const playBtn = document.getElementById('play-btn');
+            const progress = document.getElementById('progress');
+            const timeEl = document.getElementById('time');
+            const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+            video.addEventListener('loadedmetadata', () => {
+                videosphere.setAttribute('geometry', {
+                    radius: 500,
+                    phiLength: phiLength,
+                    phiStart: phiStart,
+                    thetaLength: 180,
+                    thetaStart: 0
+                });
+                applyVRFormat();
+            });
+
+            video.addEventListener('canplay', () => applyVRFormat());
+
+            function applyVRFormat() {
+                const scene = document.querySelector('a-scene');
+                if (!scene) return;
+                scene.addEventListener('loaded', () => {
+                    const mesh = videosphere.getObject3D('mesh');
+                    if (mesh && mesh.material && mesh.material.map) {
+                        switch (FORMAT) {
+                            case 'sbs':
+                                mesh.material.map.repeat.set(0.5, 1);
+                                mesh.material.map.offset.set(0, 0);
+                                break;
+                            case 'tb':
+                                mesh.material.map.repeat.set(1, 0.5);
+                                mesh.material.map.offset.set(0, 0);
+                                break;
+                            default:
+                                mesh.material.map.repeat.set(1, 1);
+                                mesh.material.map.offset.set(0, 0);
+                        }
+                        mesh.material.map.needsUpdate = true;
+                    }
+                }, { once: true });
+            }
+
+            playBtn.addEventListener('click', () => {
+                if (video.paused) {
+                    video.play();
+                    playBtn.textContent = '❚❚';
+                } else {
+                    video.pause();
+                    playBtn.textContent = '▶';
+                }
+            });
+
+            video.addEventListener('play', () => { playBtn.textContent = '❚❚'; });
+            video.addEventListener('pause', () => { playBtn.textContent = '▶'; });
+
+            video.addEventListener('timeupdate', () => {
+                if (video.duration) {
+                    progress.value = (video.currentTime / video.duration) * 100;
+                    timeEl.textContent = formatTime(video.currentTime) + ' / ' + formatTime(video.duration);
+                }
+            });
+
+            progress.addEventListener('input', (e) => {
+                if (video.duration) video.currentTime = (e.target.value / 100) * video.duration;
+            });
+
+            video.addEventListener('loadedmetadata', () => {
+                timeEl.textContent = '00:00 / ' + formatTime(video.duration);
+            });
+
+            fullscreenBtn.addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            });
+
+            function formatTime(s) {
+                const m = Math.floor(s / 60);
+                const h = Math.floor(m / 60);
+                return (h > 0 ? (h + ':') : '') + String(m % 60).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+            }
+        })();
+    </script>
+</body>
+</html>

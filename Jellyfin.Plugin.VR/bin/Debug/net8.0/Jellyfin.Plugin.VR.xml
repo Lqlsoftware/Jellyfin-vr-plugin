@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Jellyfin.Plugin.VR</name>
+    </assembly>
+    <members>
+        <member name="T:Jellyfin.Plugin.VR.Api.VRController">
+            <summary>
+            API controller for VR video detection and playback.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.VR.Api.VRController.#ctor(MediaBrowser.Controller.Library.ILibraryManager,MediaBrowser.Controller.Library.IMediaSourceManager,MediaBrowser.Controller.Net.IAuthorizationContext)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.VR.Api.VRController"/> class.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.VR.Api.VRController.GetVideoInfo(System.Guid)">
+            <summary>
+            Gets VR video info for the specified item.
+            </summary>
+            <param name="itemId">The item ID.</param>
+            <returns>VR video detection result.</returns>
+        </member>
+        <member name="M:Jellyfin.Plugin.VR.Api.VRController.GetPlayPage(System.Guid)">
+            <summary>
+            Gets the VR player page for the specified item.
+            </summary>
+            <param name="itemId">The item ID.</param>
+            <returns>HTML page for VR playback.</returns>
+        </member>
+        <member name="T:Jellyfin.Plugin.VR.Configuration.PluginConfiguration">
+            <summary>
+            Plugin configuration for VR video support.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.VR.Configuration.PluginConfiguration.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.VR.Configuration.PluginConfiguration"/> class.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.VR.Configuration.PluginConfiguration.DefaultFov">
+            <summary>
+            Gets or sets the default VR field of view (180 or 360).
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.VR.Configuration.PluginConfiguration.DefaultFormat">
+            <summary>
+            Gets or sets the default VR format (mono, sbs, tb).
+            </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.VR.Models.VRVideoInfo">
+            <summary>
+            VR video detection result.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.VR.Models.VRVideoInfo.IsVR">
+            <summary>
+            Gets or sets a value indicating whether the video is a VR video.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.VR.Models.VRVideoInfo.Fov">
+            <summary>
+            Gets or sets the VR field of view: "180" or "360".
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.VR.Models.VRVideoInfo.Format">
+            <summary>
+            Gets or sets the VR format: "mono", "sbs", or "tb".
+            </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.VR.Plugin">
+            <summary>
+            The main VR plugin for Jellyfin.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.VR.Plugin.#ctor(MediaBrowser.Common.Configuration.IApplicationPaths,MediaBrowser.Model.Serialization.IXmlSerializer)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.VR.Plugin"/> class.
+            </summary>
+            <param name="applicationPaths">Instance of <see cref="T:MediaBrowser.Common.Configuration.IApplicationPaths"/>.</param>
+            <param name="xmlSerializer">Instance of <see cref="T:MediaBrowser.Model.Serialization.IXmlSerializer"/>.</param>
+        </member>
+        <member name="P:Jellyfin.Plugin.VR.Plugin.Name">
+            <inheritdoc />
+        </member>
+        <member name="P:Jellyfin.Plugin.VR.Plugin.Id">
+            <inheritdoc />
+        </member>
+        <member name="P:Jellyfin.Plugin.VR.Plugin.Instance">
+            <summary>
+            Gets the current plugin instance.
+            </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.VR.Services.VRDetectionService">
+            <summary>
+            Service for detecting VR videos from filename, resolution, and genre/tags.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.VR.Services.VRDetectionService.DetectVRVideo(MediaBrowser.Controller.Entities.BaseItem,MediaBrowser.Controller.Library.IMediaSourceManager)">
+            <summary>
+            Detects if the given item is a VR video and returns VR metadata.
+            </summary>
+            <param name="item">The base item (video) to analyze.</param>
+            <param name="mediaSourceManager">The media source manager for resolution detection.</param>
+            <returns>VR video info with detection results.</returns>
+        </member>
+    </members>
+</doc>
