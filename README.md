@@ -91,6 +91,21 @@ http://your-jellyfin-server/VR/Video/{itemId}/Play
 
 需先登录 Jellyfin Web 客户端，再在新标签页打开上述链接。
 
+### 详情页一键 VR 按钮（custom-javascript）
+
+如果你安装了 `jellyfin-plugin-custom-javascript`，可注入脚本在详情页显示「VR 播放」按钮。
+
+脚本文件：
+
+- `integration/custom-javascript/jellyfin-vr-button.js`
+
+使用步骤：
+
+1. 在 Jellyfin 安装并启用 custom-javascript 插件  
+2. 将上述脚本内容粘贴到 custom-javascript 的注入脚本配置中（或按该插件支持的方式引用脚本 URL）  
+3. 刷新 Jellyfin Web，进入任意视频详情页  
+4. 点击「VR 播放」按钮，即会新标签页打开 `/VR/Video/{itemId}/Play`
+
 ## VR 检测规则
 
 1. **Genre/Tags**：若视频的 Genre 或 Tag 包含 "VR"、"360"、"180" 等关键词

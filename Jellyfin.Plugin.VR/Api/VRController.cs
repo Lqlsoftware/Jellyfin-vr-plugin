@@ -6,6 +6,7 @@ using Jellyfin.Plugin.VR.Services;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Net;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -23,6 +24,7 @@ public class VRController : ControllerBase
     private readonly ILibraryManager _libraryManager;
     private readonly IMediaSourceManager _mediaSourceManager;
     private readonly IAuthorizationContext _authContext;
+    private readonly ILogger<VRController> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VRController"/> class.
@@ -30,11 +32,13 @@ public class VRController : ControllerBase
     public VRController(
         ILibraryManager libraryManager,
         IMediaSourceManager mediaSourceManager,
-        IAuthorizationContext authContext)
+        IAuthorizationContext authContext,
+        ILogger<VRController> logger)
     {
         _libraryManager = libraryManager;
         _mediaSourceManager = mediaSourceManager;
         _authContext = authContext;
+        _logger = logger;
     }
 
     /// <summary>
@@ -72,32 +76,41 @@ public class VRController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPlayPage([FromRoute] Guid itemId)
     {
-        var item = _libraryManager.GetItemById(itemId);
-        if (item == null)
+        try
         {
-            return NotFound();
-        }
+            var item = _libraryManager.GetItemById(itemId);
+            if (item == null)
+            {
+                return NotFound();
+            }
 
-        if (item is not MediaBrowser.Controller.Entities.Video)
+            if (item is not MediaBrowser.Controller.Entities.Video)
+            {
+                return NotFound();
+            }
+
+            var authInfo = await _authContext.GetAuthorizationInfo(Request).ConfigureAwait(false);
+            var token = authInfo?.Token;
+            if (string.IsNullOrEmpty(token))
+            {
+                return Unauthorized();
+            }
+
+            var vrInfo = VRDetectionService.DetectVRVideo(item, _mediaSourceManager);
+
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var streamUrl = $"{baseUrl}/Videos/{itemId}/stream?Static=true&api_key={token}";
+
+            var title = string.IsNullOrWhiteSpace(item.Name) ? "VR Video" : item.Name;
+            var phiStart = vrInfo.Fov == "180" ? "-90" : "0";
+            var html = await GetVRPlayerHtml(streamUrl, vrInfo.Fov, vrInfo.Format, phiStart, title).ConfigureAwait(false);
+            return Content(html, "text/html; charset=utf-8");
+        }
+        catch (Exception ex)
         {
-            return NotFound();
+            _logger.LogError(ex, "Failed to render VR play page for item {ItemId}", itemId);
+            return Problem("VR 播放页面生成失败，请查看 Jellyfin 日志。");
         }
-
-        var authInfo = await _authContext.GetAuthorizationInfo(Request).ConfigureAwait(false);
-        var token = authInfo?.Token;
-        if (string.IsNullOrEmpty(token))
-        {
-            return Unauthorized();
-        }
-
-        var vrInfo = VRDetectionService.DetectVRVideo(item, _mediaSourceManager);
-
-        var baseUrl = $"{Request.Scheme}://{Request.Host}";
-        var streamUrl = $"{baseUrl}/Videos/{itemId}/stream?Static=true&api_key={token}";
-
-        var phiStart = vrInfo.Fov == "180" ? "-90" : "0";
-        var html = await GetVRPlayerHtml(streamUrl, vrInfo.Fov, vrInfo.Format, phiStart, item.Name).ConfigureAwait(false);
-        return Content(html, "text/html; charset=utf-8");
     }
 
     private static async Task<string> GetVRPlayerHtml(string streamUrl, string fov, string format, string phiStart, string title)
