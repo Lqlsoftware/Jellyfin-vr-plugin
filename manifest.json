@@ -8,12 +8,12 @@
     "category": "General",
     "versions": [
       {
-        "version": "0.1.0.2",
-        "changelog": "Release v0.1.0.2",
-        "targetAbi": "10.8.3.0",
-        "sourceUrl": "https://github.com/Lqlsoftware/Jellyfin-vr-plugin/releases/download/v0.1.0.2/Jellyfin.Plugin.VR_0.1.0.2.zip",
-        "checksum": "1877019ae1600b6ed51da52db315d029",
-        "timestamp": "2026-03-04T09:13:35Z"
+        "version": "0.1.0.3",
+        "changelog": "Release v0.1.0.3",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Lqlsoftware/Jellyfin-vr-plugin/releases/download/v0.1.0.3/Jellyfin.Plugin.VR_0.1.0.3.zip",
+        "checksum": "3a92e0fed4a436abc4290426ce69ab3d",
+        "timestamp": "2026-03-04T11:13:07Z"
       }
     ]
   }
