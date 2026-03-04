@@ -138,7 +138,7 @@
                 </div>
             </div>
 
-            <div id="vr-scene" class="vr-scene" style="display: none;">
+            <div id="vr-scene" class="vr-scene mode-hidden">
                 <a-scene embedded vr-mode-ui="enabled: false" loading-screen="enabled: false" renderer="antialias: true; colorManagement: true">
                     <a-videosphere src="#video-element" geometry="radius: 500; phiLength: {{PHI_LENGTH}}; phiStart: {{PHI_START}}; thetaLength: 180; thetaStart: 0" material="shader: flat"></a-videosphere>
                     <a-camera id="vr-camera" position="0 1.6 0" rotation="0 -90 0" look-controls="enabled: false" camera="fov: 80"></a-camera>

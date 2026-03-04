@@ -45,6 +45,7 @@ body {
 .interface {
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 .toolbar {
@@ -122,10 +123,18 @@ body {
 
 .video-container,
 .vr-scene {
-    position: relative;
+    position: absolute;
+    top: 56px;
+    left: 0;
     width: 100%;
     height: calc(100vh - 56px);
     overflow: hidden;
+}
+
+.mode-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .video-player,

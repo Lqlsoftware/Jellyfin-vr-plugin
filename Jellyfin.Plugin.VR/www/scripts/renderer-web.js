@@ -53,6 +53,7 @@
             this.lastMouseY = 0;
             this.firstMouseMove = true;
             this.mouseDown = false;
+            this.hasAutoStarted = false;
 
             this.videoList = [{
                 name: this.currentTitle,
@@ -83,6 +84,7 @@
             this.initVideo();
             this.setupSceneEvents();
             this.setupMouseControls();
+            this.setModeViewState(false);
         }
 
         initLanguage() {
@@ -98,7 +100,9 @@
             this.video.addEventListener("loadedmetadata", () => {
                 this.updateProgress();
                 this.updateVRVideoSource();
+                this.autoStartInVR();
             });
+            this.video.addEventListener("canplay", () => this.autoStartInVR(), { once: true });
             this.video.addEventListener("timeupdate", () => this.updateProgress());
             this.video.addEventListener("play", () => {
                 this.isPlaying = true;
@@ -115,6 +119,27 @@
             this.video.addEventListener("error", () => {
                 this.showNotification(window.i18n ? window.i18n.t("messages.video_error") : "Video error");
             });
+        }
+
+        async autoStartInVR() {
+            if (this.hasAutoStarted) return;
+            this.hasAutoStarted = true;
+
+            this.enterVRMode(false);
+
+            try {
+                await this.video.play();
+            } catch (_) {
+                try {
+                    // Some browsers block autoplay with audio; fallback to muted autoplay.
+                    this.video.muted = true;
+                    this.isMuted = true;
+                    this.updateVolumeDisplay();
+                    await this.video.play();
+                } catch {
+                    this.showNotification("自动播放被浏览器限制，请点击播放");
+                }
+            }
         }
 
         setupSceneEvents() {
@@ -181,8 +206,15 @@
             });
 
             document.addEventListener("keydown", (e) => this.handleKeyPress(e));
-            document.addEventListener("fullscreenchange", () => this.syncFullscreenUI());
+            document.addEventListener("fullscreenchange", () => {
+                this.syncFullscreenUI();
+                if (this.isVRMode) this.forceSceneRender();
+            });
             document.addEventListener("click", (e) => this.handleOutsideClick(e));
+            document.addEventListener("wheel", (e) => this.handleMouseWheel(e), { passive: false });
+            window.addEventListener("resize", () => {
+                if (this.isVRMode) this.forceSceneRender();
+            });
         }
 
         setupMouseControls() {
@@ -193,21 +225,16 @@
 
                 let deltaX = 0;
                 let deltaY = 0;
-                if (document.pointerLockElement) {
-                    deltaX = e.movementX || 0;
-                    deltaY = e.movementY || 0;
-                } else {
-                    if (this.firstMouseMove) {
-                        this.lastMouseX = e.clientX;
-                        this.lastMouseY = e.clientY;
-                        this.firstMouseMove = false;
-                        return;
-                    }
-                    deltaX = e.clientX - this.lastMouseX;
-                    deltaY = e.clientY - this.lastMouseY;
+                if (this.firstMouseMove) {
                     this.lastMouseX = e.clientX;
                     this.lastMouseY = e.clientY;
+                    this.firstMouseMove = false;
+                    return;
                 }
+                deltaX = e.clientX - this.lastMouseX;
+                deltaY = e.clientY - this.lastMouseY;
+                this.lastMouseX = e.clientX;
+                this.lastMouseY = e.clientY;
 
                 const sensitivity = (this.settings.vrViewSensitivity / 100) * 0.5;
                 const rotation = this.vrCamera.getAttribute("rotation");
@@ -220,18 +247,22 @@
                 if (!this.isVRMode || this.isControlArea(e.target)) return;
                 if (!this.settings.mouseTracking && e.button === 0) {
                     this.mouseDown = true;
-                    const canvas = document.querySelector("a-scene canvas");
-                    if (canvas?.requestPointerLock) canvas.requestPointerLock();
+                    this.firstMouseMove = true;
                 }
             });
 
             document.addEventListener("mouseup", () => {
                 if (!this.isVRMode) return;
                 this.mouseDown = false;
-                if (document.pointerLockElement && document.exitPointerLock) {
-                    document.exitPointerLock();
-                }
             });
+        }
+
+        handleMouseWheel(e) {
+            if (!this.isVRMode) return;
+            if (this.isControlArea(e.target)) return;
+            e.preventDefault();
+            const step = e.deltaY < 0 ? 0.1 : -0.1;
+            this.adjustZoom(step);
         }
 
         isControlArea(target) {
@@ -388,30 +419,77 @@
             this.fullscreenBtn.innerHTML = document.fullscreenElement ? "<span class=\"icon\">🡼</span>" : "<span class=\"icon\">⛶</span>";
         }
 
-        enterVRMode() {
+        enterVRMode(showTip = true) {
             if (this.isVRMode) return;
             this.isVRMode = true;
-            this.videoContainer.style.display = "none";
-            this.vrScene.style.display = "block";
+            this.setModeViewState(true);
             if (this.exitVrBtn) this.exitVrBtn.style.display = "grid";
             this.updateVRVideoSource();
             this.updateVRModeGeometry();
             this.updateVRScale(this.currentVRScale);
+            this.forceSceneRender();
             this.updateButtonStates();
-            this.showNotification(window.i18n ? window.i18n.t("messages.vr_mode_enabled") : "VR mode enabled");
+            if (showTip) {
+                this.showNotification(window.i18n ? window.i18n.t("messages.vr_mode_enabled") : "VR mode enabled");
+            }
         }
 
         exitVRMode() {
             if (!this.isVRMode) return;
             this.isVRMode = false;
-            this.vrScene.style.display = "none";
-            this.videoContainer.style.display = "block";
+            this.setModeViewState(false);
             if (this.exitVrBtn) this.exitVrBtn.style.display = "none";
-            if (document.pointerLockElement && document.exitPointerLock) {
-                document.exitPointerLock();
-            }
             this.updateButtonStates();
             this.showNotification(window.i18n ? window.i18n.t("messages.vr_mode_disabled") : "VR mode disabled");
+        }
+
+        setModeViewState(isVRMode) {
+            if (!this.videoContainer || !this.vrScene) return;
+
+            if (isVRMode) {
+                this.videoContainer.classList.add("mode-hidden");
+                this.vrScene.classList.remove("mode-hidden");
+            } else {
+                this.vrScene.classList.add("mode-hidden");
+                this.videoContainer.classList.remove("mode-hidden");
+            }
+        }
+
+        forceSceneRender() {
+            const scene = document.querySelector("a-scene");
+            if (!scene) return;
+
+            const rerender = () => {
+                try {
+                    if (typeof scene.resize === "function") {
+                        scene.resize();
+                    }
+
+                    if (scene.camera?.updateProjectionMatrix) {
+                        scene.camera.aspect = window.innerWidth / window.innerHeight;
+                        scene.camera.updateProjectionMatrix();
+                    }
+
+                    if (scene.renderer && scene.object3D && scene.camera) {
+                        scene.renderer.render(scene.object3D, scene.camera);
+                    }
+
+                    this.applyVRFormat();
+                } catch (_) {
+                    // Ignore transient render errors during scene init.
+                }
+            };
+
+            if (scene.hasLoaded) {
+                rerender();
+                setTimeout(rerender, 80);
+                setTimeout(rerender, 220);
+            } else {
+                scene.addEventListener("loaded", () => {
+                    rerender();
+                    setTimeout(rerender, 100);
+                }, { once: true });
+            }
         }
 
         updateVRVideoSource() {
