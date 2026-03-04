@@ -33,7 +33,9 @@ Jellyfin 插件，支持 VR 视频检测与播放。
 dotnet build Jellyfin.Plugin.VR.sln
 ```
 
-输出位于 `Jellyfin.Plugin.VR/bin/Debug/net6.0/` 或 `Release` 目录。
+需要安装 `.NET 9 SDK`。
+
+输出位于 `Jellyfin.Plugin.VR/bin/Debug/net9.0/` 或 `Release` 目录。
 
 ## 发布（GitHub Release Action）
 
@@ -71,7 +73,7 @@ https://github.com/<你的GitHub用户名>/<你的仓库名>/releases/latest/dow
 然后重启 Jellyfin，即可在插件目录中看到该插件。
 
 说明：
-- `manifest.json` 中 `targetAbi` 已配置为 `10.8.3.0`。
+- `manifest.json` 中 `targetAbi` 已配置为 `10.11.0.0`。
 - 仓库必须是公开可访问，且 Jellyfin 所在网络能够访问 GitHub。
 
 ## 使用
