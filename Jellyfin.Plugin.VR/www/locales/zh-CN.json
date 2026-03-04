@@ -1,0 +1,51 @@
+{
+  "app": {
+    "title": "VR Player",
+    "welcome": "欢迎使用 VR Player",
+    "unsupported_browser": "您的浏览器不支持视频播放"
+  },
+  "controls": {
+    "play": "播放",
+    "pause": "暂停",
+    "stop": "停止",
+    "volume": "音量",
+    "mute": "静音",
+    "unmute": "取消静音",
+    "fullscreen": "全屏",
+    "exit_fullscreen": "退出全屏",
+    "enter_vr": "进入VR模式",
+    "exit_vr": "退出VR模式"
+  },
+  "playlist": {
+    "title": "播放列表",
+    "clear": "清空列表",
+    "empty": "播放列表为空",
+    "current": "当前播放"
+  },
+  "settings": {
+    "title": "设置",
+    "theme": "主题",
+    "theme_system": "跟随系统",
+    "theme_light": "浅色模式",
+    "theme_dark": "深色模式",
+    "loop": "循环播放",
+    "vr_view_sensitivity": "视角灵敏度",
+    "vr_view_zoom": "视角缩放",
+    "vr_fov": "VR 视野",
+    "vr_fov_180": "180° 半球",
+    "vr_fov_360": "360° 全景",
+    "vr_format": "VR 格式",
+    "vr_format_mono": "单眼 (Mono)",
+    "vr_format_sbs": "左右分屏 (SBS)",
+    "vr_format_tb": "上下分屏 (TB)",
+    "language": "语言"
+  },
+  "messages": {
+    "video_error": "视频加载失败",
+    "vr_mode_enabled": "已启用 VR 模式",
+    "vr_mode_disabled": "已退出 VR 模式",
+    "mouse_tracking_enabled": "已启用鼠标追踪",
+    "mouse_tracking_disabled": "已禁用鼠标追踪",
+    "vr_auto_detected": "已检测到 VR 视频并自动进入 VR 模式"
+  }
+}

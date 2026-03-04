@@ -18,19 +18,61 @@
         return hash.includes("/details") || hash.includes("details?id=");
     }
 
+    function getCurrentAccessToken() {
+        if (window.ApiClient && typeof window.ApiClient.accessToken === "function") {
+            return window.ApiClient.accessToken() || "";
+        }
+
+        return "";
+    }
+
+    function getServerAddress() {
+        if (window.ApiClient && typeof window.ApiClient.serverAddress === "function") {
+            const addr = window.ApiClient.serverAddress();
+            if (addr) return addr.replace(/\/+$/, "");
+        }
+
+        return window.location.origin;
+    }
+
     function openVrPage(itemId) {
-        const url = `${window.location.origin}/VR/Video/${itemId}/Play`;
-        window.open(url, "_blank", "noopener,noreferrer");
+        const base = getServerAddress();
+        const url = new URL(`${base}/VR/Video/${encodeURIComponent(itemId)}/Play`);
+        const token = getCurrentAccessToken();
+        if (token) {
+            // 新标签页是普通导航请求，附加 api_key 以通过 Jellyfin 自定义认证。
+            url.searchParams.set("api_key", token);
+        }
+
+        window.open(url.toString(), "_blank", "noopener,noreferrer");
     }
 
     function createButton(itemId) {
         const btn = document.createElement("button");
         btn.id = BUTTON_ID;
         btn.type = "button";
-        btn.className = "button-flat raised";
+        btn.className = "button-flat";
         btn.style.marginLeft = "8px";
-        btn.style.padding = "8px 12px";
-        btn.textContent = "VR 播放";
+        btn.style.padding = "6px";
+        btn.style.background = "transparent";
+        btn.style.border = "none";
+        btn.style.minWidth = "32px";
+        btn.style.minHeight = "32px";
+        btn.style.display = "inline-flex";
+        btn.style.alignItems = "center";
+        btn.style.justifyContent = "center";
+        btn.style.cursor = "pointer";
+        btn.style.opacity = "0.95";
+        btn.innerHTML = `
+            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+                 fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2.5" y="6.5" width="19" height="11" rx="4.5"></rect>
+                <circle cx="8.5" cy="12" r="2.1"></circle>
+                <circle cx="15.5" cy="12" r="2.1"></circle>
+                <path d="M11 12h2"></path>
+            </svg>
+        `;
+        btn.setAttribute("aria-label", "VR 播放");
         btn.title = "使用 Jellyfin VR 插件播放";
         btn.addEventListener("click", function () {
             openVrPage(itemId);

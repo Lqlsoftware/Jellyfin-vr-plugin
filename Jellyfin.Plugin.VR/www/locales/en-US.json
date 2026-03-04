@@ -1,0 +1,51 @@
+{
+  "app": {
+    "title": "VR Player",
+    "welcome": "Welcome to VR Player",
+    "unsupported_browser": "Your browser does not support video playback"
+  },
+  "controls": {
+    "play": "Play",
+    "pause": "Pause",
+    "stop": "Stop",
+    "volume": "Volume",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "fullscreen": "Fullscreen",
+    "exit_fullscreen": "Exit Fullscreen",
+    "enter_vr": "Enter VR mode",
+    "exit_vr": "Exit VR mode"
+  },
+  "playlist": {
+    "title": "Playlist",
+    "clear": "Clear",
+    "empty": "Playlist is empty",
+    "current": "Now Playing"
+  },
+  "settings": {
+    "title": "Settings",
+    "theme": "Theme",
+    "theme_system": "System",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "loop": "Loop",
+    "vr_view_sensitivity": "View sensitivity",
+    "vr_view_zoom": "View zoom",
+    "vr_fov": "VR FOV",
+    "vr_fov_180": "180° Hemisphere",
+    "vr_fov_360": "360° Panorama",
+    "vr_format": "VR Format",
+    "vr_format_mono": "Mono",
+    "vr_format_sbs": "Side-by-Side (SBS)",
+    "vr_format_tb": "Top-Bottom (TB)",
+    "language": "Language"
+  },
+  "messages": {
+    "video_error": "Failed to load video",
+    "vr_mode_enabled": "VR mode enabled",
+    "vr_mode_disabled": "VR mode disabled",
+    "mouse_tracking_enabled": "Mouse tracking enabled",
+    "mouse_tracking_disabled": "Mouse tracking disabled",
+    "vr_auto_detected": "VR video detected and auto-entered VR mode"
+  }
+}

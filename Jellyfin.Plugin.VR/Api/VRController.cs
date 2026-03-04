@@ -21,6 +21,13 @@ namespace Jellyfin.Plugin.VR.Api;
 [Authorize]
 public class VRController : ControllerBase
 {
+    private static readonly HashSet<string> AllowedAssetRoots = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "styles",
+        "scripts",
+        "locales"
+    };
+
     private readonly ILibraryManager _libraryManager;
     private readonly IMediaSourceManager _mediaSourceManager;
     private readonly IAuthorizationContext _authContext;
@@ -123,20 +130,19 @@ public class VRController : ControllerBase
                 return Unauthorized();
             }
 
-            var vrInfo = VRDetectionService.DetectVRVideo(item, _mediaSourceManager, _logger);
-
             var baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
             var streamUrl = $"{baseUrl}/Videos/{itemId}/stream?Static=true&api_key={token}";
 
             var title = string.IsNullOrWhiteSpace(item.Name) ? "VR Video" : item.Name;
-            var phiStart = vrInfo.Fov == "180" ? "-90" : "0";
-            var html = await GetVRPlayerHtml(streamUrl, vrInfo.Fov, vrInfo.Format, phiStart, title, _logger).ConfigureAwait(false);
+            const string defaultFov = "180";
+            const string defaultFormat = "mono";
+            const string phiStart = "-90";
+            var html = await GetVRPlayerHtml(streamUrl, defaultFov, defaultFormat, phiStart, title, _logger).ConfigureAwait(false);
             _logger.LogInformation(
-                "VR play request done. ItemId={ItemId}, IsVR={IsVR}, Fov={Fov}, Format={Format}, StreamUrlBase={Base}",
+                "VR play request done. ItemId={ItemId}, Fov={Fov}, Format={Format}, StreamUrlBase={Base}",
                 itemId,
-                vrInfo.IsVR,
-                vrInfo.Fov,
-                vrInfo.Format,
+                defaultFov,
+                defaultFormat,
                 $"{Request.Scheme}://{Request.Host}{Request.PathBase}");
             return Content(html, "text/html; charset=utf-8");
         }
@@ -145,6 +151,53 @@ public class VRController : ControllerBase
             _logger.LogError(ex, "Failed to render VR play page for item {ItemId}", itemId);
             return Problem("VR 播放页面生成失败，请查看 Jellyfin 日志。");
         }
+    }
+
+    /// <summary>
+    /// Gets embedded web assets for VR player page.
+    /// </summary>
+    /// <param name="assetPath">Relative path under www.</param>
+    /// <returns>Embedded static file content.</returns>
+    [HttpGet("Assets/{*assetPath}")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAsset([FromRoute] string? assetPath)
+    {
+        if (string.IsNullOrWhiteSpace(assetPath))
+        {
+            return NotFound();
+        }
+
+        var normalized = assetPath.Replace('\\', '/').TrimStart('/');
+        if (normalized.Contains("..", StringComparison.Ordinal))
+        {
+            return NotFound();
+        }
+
+        var firstSlash = normalized.IndexOf('/');
+        if (firstSlash <= 0)
+        {
+            return NotFound();
+        }
+
+        var root = normalized[..firstSlash];
+        if (!AllowedAssetRoots.Contains(root))
+        {
+            return NotFound();
+        }
+
+        var resourceName = $"Jellyfin.Plugin.VR.www.{normalized.Replace('/', '.')}";
+        var assembly = Assembly.GetExecutingAssembly();
+        await using var stream = assembly.GetManifestResourceStream(resourceName);
+        if (stream == null)
+        {
+            return NotFound();
+        }
+
+        await using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms).ConfigureAwait(false);
+        return File(ms.ToArray(), GetContentType(normalized));
     }
 
     private static async Task<string> GetVRPlayerHtml(string streamUrl, string fov, string format, string phiStart, string title, ILogger logger)
@@ -189,5 +242,16 @@ public class VRController : ControllerBase
 </body>
 </html>
 """;
+    }
+
+    private static string GetContentType(string assetPath)
+    {
+        return Path.GetExtension(assetPath).ToLowerInvariant() switch
+        {
+            ".css" => "text/css; charset=utf-8",
+            ".js" => "application/javascript; charset=utf-8",
+            ".json" => "application/json; charset=utf-8",
+            _ => "application/octet-stream"
+        };
     }
 }

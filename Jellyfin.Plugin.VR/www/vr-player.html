@@ -4,138 +4,150 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VR Player - {{TITLE}}</title>
+    <link rel="stylesheet" href="../../Assets/styles/main.css">
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #000; font-family: sans-serif; }
-        #vr-scene { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
-        #controls {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.7); padding: 12px 20px; border-radius: 8px;
-            display: flex; align-items: center; gap: 16px; z-index: 1000;
-        }
-        #controls button {
-            background: #00a4dc; color: white; border: none; padding: 8px 16px;
-            border-radius: 4px; cursor: pointer; font-size: 14px;
-        }
-        #controls button:hover { background: #0088b8; }
-        #progress { flex: 1; min-width: 120px; height: 6px; cursor: pointer; }
-        #time { color: #fff; font-size: 12px; min-width: 100px; text-align: center; }
-    </style>
+    <script src="../../Assets/scripts/i18n.js"></script>
 </head>
-<body>
-    <div id="vr-scene">
-        <a-scene embedded vr-mode-ui="enabled: false" loading-screen="enabled: false">
-            <a-assets>
-                <video id="video-element" crossorigin="anonymous" preload="auto" playsinline
-                    src="{{STREAM_URL}}"></video>
-            </a-assets>
-            <a-videosphere id="videosphere" src="#video-element"
-                geometry="radius: 500; phiLength: {{PHI_LENGTH}}; phiStart: {{PHI_START}}; thetaLength: 180; thetaStart: 0"
-                material="shader: flat"></a-videosphere>
-            <a-camera id="camera" position="0 1.6 0" rotation="0 -90 0" look-controls="pointerLockEnabled: true; mouseSensitivity: 0.5"></a-camera>
-            <a-light type="ambient" color="#ffffff" intensity="0.5"></a-light>
-        </a-scene>
+<body data-stream-url="{{STREAM_URL}}" data-init-fov="180" data-init-format="mono" data-asset-base="../../Assets">
+    <div id="app">
+        <div id="main-interface" class="interface">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <h1 class="app-title">VR Player</h1>
+                </div>
+                <div class="toolbar-center">
+                    <div id="vr-mode-status" class="vr-mode-status">
+                        <div class="vr-mode-indicator">
+                            <span id="vr-mode-text">180° Mono</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="toolbar-right">
+                    <button id="playlist-btn" class="toolbar-btn" data-i18n-title="playlist.title">☰</button>
+                    <button id="settings-btn" class="toolbar-btn" data-i18n-title="settings.title">⚙</button>
+                </div>
+            </div>
+
+            <div id="video-container" class="video-container">
+                <div id="video-player" class="video-player">
+                    <video id="video-element" crossorigin="anonymous" preload="auto" playsinline src="{{STREAM_URL}}">
+                        <span data-i18n="app.unsupported_browser">您的浏览器不支持视频播放</span>
+                    </video>
+                    <div id="video-controls" class="video-controls">
+                        <div class="control-bar">
+                            <div class="left-controls">
+                                <button id="play-pause-btn" class="control-btn" data-i18n-title="controls.play"><span class="icon">▶</span></button>
+                                <button id="stop-btn" class="control-btn" data-i18n-title="controls.stop"><span class="icon">■</span></button>
+                            </div>
+                            <div class="progress-container">
+                                <input type="range" id="progress-bar" min="0" max="100" value="0" class="progress-bar">
+                                <div class="time-display-container">
+                                    <span id="current-time" class="current-time">00:00</span>
+                                    <span id="total-time" class="total-time">00:00</span>
+                                </div>
+                            </div>
+                            <div class="right-controls">
+                                <button id="volume-btn" class="control-btn" data-i18n-title="controls.volume"><span class="icon">🔊</span></button>
+                                <button id="vr-btn" class="control-btn" data-i18n-title="controls.enter_vr"><span class="icon">🥽</span></button>
+                                <button id="exit-vr-btn" class="control-btn" style="display: none;" data-i18n-title="controls.exit_vr"><span class="icon">✕</span></button>
+                                <button id="fullscreen-btn" class="control-btn" data-i18n-title="controls.fullscreen"><span class="icon">⛶</span></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="file-list" class="file-list" style="display: none;">
+                <div class="file-list-header">
+                    <h3 data-i18n="playlist.title">播放列表</h3>
+                    <button id="clear-list-btn" class="clear-btn" data-i18n="playlist.clear">清空列表</button>
+                </div>
+                <div id="file-list-content" class="file-list-content"></div>
+            </div>
+
+            <div id="settings-panel" class="settings-panel" style="display: none;">
+                <div class="settings-header">
+                    <h3 data-i18n="settings.title">设置</h3>
+                    <button id="close-settings-btn" class="close-btn">×</button>
+                </div>
+                <div class="settings-content">
+                    <div class="setting-group">
+                        <div class="vr-setting-row">
+                            <label data-i18n="settings.loop">循环播放</label>
+                            <div class="vr-setting-control">
+                                <input type="checkbox" id="loop">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <div class="vr-setting-row">
+                            <label data-i18n="settings.vr_view_sensitivity">视角灵敏度</label>
+                            <div class="vr-setting-control">
+                                <input type="range" id="mouse-sensitivity" min="0" max="100" step="1" value="40">
+                                <span id="sensitivity-value">40</span>
+                            </div>
+                        </div>
+                        <div class="vr-setting-row">
+                            <label data-i18n="settings.vr_view_zoom">视角缩放</label>
+                            <div class="vr-setting-control">
+                                <input type="range" id="vr-zoom-sensitivity" min="50" max="400" step="10" value="100">
+                                <span id="vr-zoom-value">1.0x</span>
+                            </div>
+                        </div>
+                        <div class="vr-setting-row">
+                            <label data-i18n="settings.vr_fov">VR 视野</label>
+                            <div class="vr-setting-control">
+                                <select id="vr-fov-select">
+                                    <option value="180" data-i18n="settings.vr_fov_180">180° 半球</option>
+                                    <option value="360" data-i18n="settings.vr_fov_360">360° 全景</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="vr-setting-row">
+                            <label data-i18n="settings.vr_format">VR 格式</label>
+                            <div class="vr-setting-control">
+                                <select id="vr-format-select">
+                                    <option value="mono" data-i18n="settings.vr_format_mono">单眼 (Mono)</option>
+                                    <option value="sbs" data-i18n="settings.vr_format_sbs">左右分屏 (SBS)</option>
+                                    <option value="tb" data-i18n="settings.vr_format_tb">上下分屏 (TB)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <div class="vr-setting-row">
+                            <label data-i18n="settings.theme">主题</label>
+                            <div class="vr-setting-control">
+                                <select id="theme-select">
+                                    <option value="system" data-i18n="settings.theme_system">跟随系统</option>
+                                    <option value="light" data-i18n="settings.theme_light">浅色模式</option>
+                                    <option value="dark" data-i18n="settings.theme_dark">深色模式</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="vr-setting-row">
+                            <label data-i18n="settings.language">语言</label>
+                            <div class="vr-setting-control">
+                                <select id="language-select">
+                                    <option value="zh-CN">简体中文</option>
+                                    <option value="en-US">English</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="vr-scene" class="vr-scene" style="display: none;">
+                <a-scene embedded vr-mode-ui="enabled: false" loading-screen="enabled: false" renderer="antialias: true; colorManagement: true">
+                    <a-videosphere src="#video-element" geometry="radius: 500; phiLength: {{PHI_LENGTH}}; phiStart: {{PHI_START}}; thetaLength: 180; thetaStart: 0" material="shader: flat"></a-videosphere>
+                    <a-camera id="vr-camera" position="0 1.6 0" rotation="0 -90 0" look-controls="enabled: false" camera="fov: 80"></a-camera>
+                    <a-light type="ambient" color="#ffffff" intensity="0.5"></a-light>
+                </a-scene>
+            </div>
+        </div>
     </div>
-    <div id="controls">
-        <button id="play-btn">▶</button>
-        <input type="range" id="progress" min="0" max="100" value="0">
-        <span id="time">00:00 / 00:00</span>
-        <button id="fullscreen-btn">⛶</button>
-    </div>
-    <script>
-        (function() {
-            const FOV = '{{FOV}}';
-            const FORMAT = '{{FORMAT}}';
-            const phiStart = FOV === '180' ? -90 : 0;
-            const phiLength = FOV === '180' ? 180 : 360;
 
-            const video = document.getElementById('video-element');
-            const videosphere = document.getElementById('videosphere');
-            const playBtn = document.getElementById('play-btn');
-            const progress = document.getElementById('progress');
-            const timeEl = document.getElementById('time');
-            const fullscreenBtn = document.getElementById('fullscreen-btn');
-
-            video.addEventListener('loadedmetadata', () => {
-                videosphere.setAttribute('geometry', {
-                    radius: 500,
-                    phiLength: phiLength,
-                    phiStart: phiStart,
-                    thetaLength: 180,
-                    thetaStart: 0
-                });
-                applyVRFormat();
-            });
-
-            video.addEventListener('canplay', () => applyVRFormat());
-
-            function applyVRFormat() {
-                const scene = document.querySelector('a-scene');
-                if (!scene) return;
-                scene.addEventListener('loaded', () => {
-                    const mesh = videosphere.getObject3D('mesh');
-                    if (mesh && mesh.material && mesh.material.map) {
-                        switch (FORMAT) {
-                            case 'sbs':
-                                mesh.material.map.repeat.set(0.5, 1);
-                                mesh.material.map.offset.set(0, 0);
-                                break;
-                            case 'tb':
-                                mesh.material.map.repeat.set(1, 0.5);
-                                mesh.material.map.offset.set(0, 0);
-                                break;
-                            default:
-                                mesh.material.map.repeat.set(1, 1);
-                                mesh.material.map.offset.set(0, 0);
-                        }
-                        mesh.material.map.needsUpdate = true;
-                    }
-                }, { once: true });
-            }
-
-            playBtn.addEventListener('click', () => {
-                if (video.paused) {
-                    video.play();
-                    playBtn.textContent = '❚❚';
-                } else {
-                    video.pause();
-                    playBtn.textContent = '▶';
-                }
-            });
-
-            video.addEventListener('play', () => { playBtn.textContent = '❚❚'; });
-            video.addEventListener('pause', () => { playBtn.textContent = '▶'; });
-
-            video.addEventListener('timeupdate', () => {
-                if (video.duration) {
-                    progress.value = (video.currentTime / video.duration) * 100;
-                    timeEl.textContent = formatTime(video.currentTime) + ' / ' + formatTime(video.duration);
-                }
-            });
-
-            progress.addEventListener('input', (e) => {
-                if (video.duration) video.currentTime = (e.target.value / 100) * video.duration;
-            });
-
-            video.addEventListener('loadedmetadata', () => {
-                timeEl.textContent = '00:00 / ' + formatTime(video.duration);
-            });
-
-            fullscreenBtn.addEventListener('click', () => {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen();
-                } else {
-                    document.exitFullscreen();
-                }
-            });
-
-            function formatTime(s) {
-                const m = Math.floor(s / 60);
-                const h = Math.floor(m / 60);
-                return (h > 0 ? (h + ':') : '') + String(m % 60).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
-            }
-        })();
-    </script>
+    <script src="../../Assets/scripts/renderer-web.js"></script>
 </body>
 </html>
