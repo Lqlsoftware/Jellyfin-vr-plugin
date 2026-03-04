@@ -1,0 +1,20 @@
+[
+  {
+    "guid": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+    "name": "Jellyfin VR",
+    "description": "Detect and play VR videos in Jellyfin.",
+    "overview": "VR detection and standalone VR playback page",
+    "owner": "reginaldlu",
+    "category": "General",
+    "versions": [
+      {
+        "version": "0.1.0.2",
+        "changelog": "Release v0.1.0.2",
+        "targetAbi": "10.8.3.0",
+        "sourceUrl": "https://github.com/Lqlsoftware/Jellyfin-vr-plugin/releases/download/v0.1.0.2/Jellyfin.Plugin.VR_0.1.0.2.zip",
+        "checksum": "1877019ae1600b6ed51da52db315d029",
+        "timestamp": "2026-03-04T09:13:35Z"
+      }
+    ]
+  }
+]
