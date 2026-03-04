@@ -18,7 +18,7 @@ namespace Jellyfin.Plugin.VR.Api;
 /// </summary>
 [ApiController]
 [Route("VR")]
-[Authorize(Policy = "DefaultAuthorization")]
+[Authorize]
 public class VRController : ControllerBase
 {
     private readonly ILibraryManager _libraryManager;

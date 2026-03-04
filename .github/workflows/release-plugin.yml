@@ -17,7 +17,7 @@ permissions:
 env:
   PROJECT_PATH: Jellyfin.Plugin.VR/Jellyfin.Plugin.VR.csproj
   PLUGIN_DLL: Jellyfin.Plugin.VR.dll
-  TARGET_ABI: 10.8.3.0
+  TARGET_ABI: 10.11.0.0
   PLUGIN_GUID: a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d
   PLUGIN_NAME: Jellyfin VR
   PLUGIN_OWNER: reginaldlu
@@ -31,10 +31,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET 6
+      - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "6.0.x"
+          dotnet-version: "9.0.x"
 
       - name: Restore
         run: dotnet restore "${{ env.PROJECT_PATH }}"
@@ -55,7 +55,7 @@ jobs:
             VERSION="${VERSION}.0"
           fi
 
-          DLL_PATH="Jellyfin.Plugin.VR/bin/Release/net6.0/${PLUGIN_DLL}"
+          DLL_PATH="Jellyfin.Plugin.VR/bin/Release/net9.0/${PLUGIN_DLL}"
           if [[ ! -f "$DLL_PATH" ]]; then
             echo "DLL not found: $DLL_PATH"
             exit 1
