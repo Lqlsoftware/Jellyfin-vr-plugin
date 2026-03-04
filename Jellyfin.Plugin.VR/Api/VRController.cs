@@ -51,19 +51,36 @@ public class VRController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public ActionResult<VRVideoInfo> GetVideoInfo([FromRoute] Guid itemId)
     {
-        var item = _libraryManager.GetItemById(itemId);
-        if (item == null)
+        try
         {
-            return NotFound();
-        }
+            _logger.LogInformation(
+                "VR info request start. ItemId={ItemId}, Path={Path}, PathBase={PathBase}",
+                itemId,
+                Request.Path,
+                Request.PathBase);
 
-        if (item is not MediaBrowser.Controller.Entities.Video)
+            var item = _libraryManager.GetItemById(itemId);
+            if (item == null)
+            {
+                _logger.LogWarning("VR info request item not found. ItemId={ItemId}", itemId);
+                return NotFound();
+            }
+
+            if (item is not MediaBrowser.Controller.Entities.Video)
+            {
+                _logger.LogWarning("VR info request item is not video. ItemId={ItemId}, ItemType={ItemType}", itemId, item.GetType().FullName);
+                return NotFound();
+            }
+
+            var info = VRDetectionService.DetectVRVideo(item, _mediaSourceManager, _logger);
+            _logger.LogInformation("VR info request done. ItemId={ItemId}, IsVR={IsVR}, Fov={Fov}, Format={Format}", itemId, info.IsVR, info.Fov, info.Format);
+            return Ok(info);
+        }
+        catch (Exception ex)
         {
-            return NotFound();
+            _logger.LogError(ex, "VR info request failed. ItemId={ItemId}", itemId);
+            return Problem("VR 信息获取失败，请查看 Jellyfin 日志。");
         }
-
-        var info = VRDetectionService.DetectVRVideo(item, _mediaSourceManager);
-        return Ok(info);
     }
 
     /// <summary>
@@ -78,14 +95,23 @@ public class VRController : ControllerBase
     {
         try
         {
+            _logger.LogInformation(
+                "VR play request start. ItemId={ItemId}, Path={Path}, PathBase={PathBase}, Host={Host}",
+                itemId,
+                Request.Path,
+                Request.PathBase,
+                Request.Host);
+
             var item = _libraryManager.GetItemById(itemId);
             if (item == null)
             {
+                _logger.LogWarning("VR play item not found. ItemId={ItemId}", itemId);
                 return NotFound();
             }
 
             if (item is not MediaBrowser.Controller.Entities.Video)
             {
+                _logger.LogWarning("VR play item is not video. ItemId={ItemId}, ItemType={ItemType}", itemId, item.GetType().FullName);
                 return NotFound();
             }
 
@@ -93,17 +119,25 @@ public class VRController : ControllerBase
             var token = authInfo?.Token;
             if (string.IsNullOrEmpty(token))
             {
+                _logger.LogWarning("VR play unauthorized (empty token). ItemId={ItemId}", itemId);
                 return Unauthorized();
             }
 
-            var vrInfo = VRDetectionService.DetectVRVideo(item, _mediaSourceManager);
+            var vrInfo = VRDetectionService.DetectVRVideo(item, _mediaSourceManager, _logger);
 
-            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
             var streamUrl = $"{baseUrl}/Videos/{itemId}/stream?Static=true&api_key={token}";
 
             var title = string.IsNullOrWhiteSpace(item.Name) ? "VR Video" : item.Name;
             var phiStart = vrInfo.Fov == "180" ? "-90" : "0";
-            var html = await GetVRPlayerHtml(streamUrl, vrInfo.Fov, vrInfo.Format, phiStart, title).ConfigureAwait(false);
+            var html = await GetVRPlayerHtml(streamUrl, vrInfo.Fov, vrInfo.Format, phiStart, title, _logger).ConfigureAwait(false);
+            _logger.LogInformation(
+                "VR play request done. ItemId={ItemId}, IsVR={IsVR}, Fov={Fov}, Format={Format}, StreamUrlBase={Base}",
+                itemId,
+                vrInfo.IsVR,
+                vrInfo.Fov,
+                vrInfo.Format,
+                $"{Request.Scheme}://{Request.Host}{Request.PathBase}");
             return Content(html, "text/html; charset=utf-8");
         }
         catch (Exception ex)
@@ -113,18 +147,20 @@ public class VRController : ControllerBase
         }
     }
 
-    private static async Task<string> GetVRPlayerHtml(string streamUrl, string fov, string format, string phiStart, string title)
+    private static async Task<string> GetVRPlayerHtml(string streamUrl, string fov, string format, string phiStart, string title, ILogger logger)
     {
         var assembly = Assembly.GetExecutingAssembly();
         var resourceName = "Jellyfin.Plugin.VR.www.vr-player.html";
         await using var stream = assembly.GetManifestResourceStream(resourceName);
         if (stream == null)
         {
+            logger.LogWarning("Embedded VR template not found, using fallback html. Resource={ResourceName}", resourceName);
             return CreateFallbackHtml(streamUrl, fov, format, phiStart, title);
         }
 
         using var reader = new StreamReader(stream, Encoding.UTF8);
         var template = await reader.ReadToEndAsync().ConfigureAwait(false);
+        logger.LogDebug("Loaded embedded VR template. Size={Size}", template.Length);
         return template
             .Replace("{{STREAM_URL}}", streamUrl)
             .Replace("{{FOV}}", fov)

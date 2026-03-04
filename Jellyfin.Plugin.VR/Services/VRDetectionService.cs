@@ -3,6 +3,7 @@ using Jellyfin.Plugin.VR.Models;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.VR.Services;
 
@@ -63,28 +64,62 @@ public static class VRDetectionService
     /// </summary>
     /// <param name="item">The base item (video) to analyze.</param>
     /// <param name="mediaSourceManager">The media source manager for resolution detection.</param>
+    /// <param name="logger">Optional logger for diagnostic output.</param>
     /// <returns>VR video info with detection results.</returns>
-    public static VRVideoInfo DetectVRVideo(BaseItem item, IMediaSourceManager mediaSourceManager)
+    public static VRVideoInfo DetectVRVideo(BaseItem item, IMediaSourceManager mediaSourceManager, ILogger? logger = null)
     {
         var result = new VRVideoInfo { IsVR = false, Fov = "180", Format = "mono" };
 
-        // Priority 1: Check genre/tags
-        if (DetectFromGenreAndTags(item, result))
+        try
         {
-            return result;
+            logger?.LogInformation(
+                "VR detect start. ItemId={ItemId}, Name={Name}, Path={Path}",
+                item.Id,
+                item.Name,
+                item.Path);
+
+            // Priority 1: Check genre/tags
+            if (DetectFromGenreAndTags(item, result))
+            {
+                logger?.LogInformation(
+                    "VR detected from genres/tags. ItemId={ItemId}, Fov={Fov}, Format={Format}, Genres={Genres}, Tags={Tags}",
+                    item.Id,
+                    result.Fov,
+                    result.Format,
+                    string.Join(",", item.Genres ?? Array.Empty<string>()),
+                    string.Join(",", item.Tags ?? Array.Empty<string>()));
+                return result;
+            }
+
+            // Priority 2: Check filename
+            if (DetectFromFilename(item.Path ?? item.Name, result))
+            {
+                logger?.LogInformation(
+                    "VR detected from filename. ItemId={ItemId}, Fov={Fov}, Format={Format}, File={FileName}",
+                    item.Id,
+                    result.Fov,
+                    result.Format,
+                    item.Path ?? item.Name);
+                return result;
+            }
+
+            // Priority 3: Check resolution from media streams
+            if (DetectFromResolution(item, result, mediaSourceManager, logger))
+            {
+                logger?.LogInformation(
+                    "VR detected from resolution. ItemId={ItemId}, Fov={Fov}, Format={Format}",
+                    item.Id,
+                    result.Fov,
+                    result.Format);
+                return result;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "VR detect failed unexpectedly. ItemId={ItemId}, Name={Name}", item.Id, item.Name);
         }
 
-        // Priority 2: Check filename
-        if (DetectFromFilename(item.Path ?? item.Name, result))
-        {
-            return result;
-        }
-
-        // Priority 3: Check resolution from media streams
-        if (DetectFromResolution(item, result, mediaSourceManager))
-        {
-            return result;
-        }
+        logger?.LogInformation("VR not detected. ItemId={ItemId}, Name={Name}", item.Id, item.Name);
 
         return result;
     }
@@ -95,12 +130,12 @@ public static class VRDetectionService
 
         if (item.Genres != null)
         {
-            toCheck.AddRange(item.Genres.Select(g => g.ToLowerInvariant()));
+            toCheck.AddRange(item.Genres.Where(g => !string.IsNullOrWhiteSpace(g)).Select(g => g.ToLowerInvariant()));
         }
 
         if (item.Tags != null)
         {
-            toCheck.AddRange(item.Tags.Select(t => t.ToLowerInvariant()));
+            toCheck.AddRange(item.Tags.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.ToLowerInvariant()));
         }
 
         foreach (var keyword in GenreTagVrKeywords)
@@ -131,7 +166,16 @@ public static class VRDetectionService
             return false;
         }
 
-        var fileName = Path.GetFileName(filePath).ToLowerInvariant();
+        string fileName;
+        try
+        {
+            fileName = Path.GetFileName(filePath).ToLowerInvariant();
+        }
+        catch
+        {
+            return false;
+        }
+
         if (string.IsNullOrEmpty(fileName))
         {
             return false;
@@ -187,7 +231,7 @@ public static class VRDetectionService
         return true;
     }
 
-    private static bool DetectFromResolution(BaseItem item, VRVideoInfo result, IMediaSourceManager mediaSourceManager)
+    private static bool DetectFromResolution(BaseItem item, VRVideoInfo result, IMediaSourceManager mediaSourceManager, ILogger? logger)
     {
         try
         {
@@ -201,6 +245,7 @@ public static class VRDetectionService
             var width = videoStream.Width.Value;
             var height = videoStream.Height.Value;
             var aspectRatio = (double)width / height;
+            logger?.LogDebug("Resolution check. ItemId={ItemId}, Width={Width}, Height={Height}, Aspect={Aspect}", item.Id, width, height, aspectRatio);
 
             foreach (var (ratio, tolerance, fov, format) in VrAspectRatios)
             {
@@ -221,9 +266,9 @@ public static class VRDetectionService
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore errors when reading media streams
+            logger?.LogWarning(ex, "Resolution detect failed. ItemId={ItemId}", item.Id);
         }
 
         return false;
